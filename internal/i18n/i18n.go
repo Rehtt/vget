@@ -58,16 +58,19 @@ type HelpTranslations struct {
 }
 
 type DownloadTranslations struct {
-	Downloading  string `yaml:"downloading"`
-	Extracting   string `yaml:"extracting"`
-	Completed    string `yaml:"completed"`
-	Failed       string `yaml:"failed"`
-	Progress     string `yaml:"progress"`
-	Speed        string `yaml:"speed"`
-	ETA          string `yaml:"eta"`
-	FileSaved    string `yaml:"file_saved"`
-	NoFormats    string `yaml:"no_formats"`
-	SelectFormat string `yaml:"select_format"`
+	Downloading      string `yaml:"downloading"`
+	Extracting       string `yaml:"extracting"`
+	Completed        string `yaml:"completed"`
+	Failed           string `yaml:"failed"`
+	Progress         string `yaml:"progress"`
+	Speed            string `yaml:"speed"`
+	ETA              string `yaml:"eta"`
+	FileSaved        string `yaml:"file_saved"`
+	NoFormats        string `yaml:"no_formats"`
+	SelectFormat     string `yaml:"select_format"`
+	FormatsAvailable string `yaml:"formats_available"`
+	SelectedFormat   string `yaml:"selected_format"`
+	QualityHint      string `yaml:"quality_hint"`
 }
 
 type ErrorTranslations struct {

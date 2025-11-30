@@ -45,6 +45,9 @@ download:
   file_saved: "文件已保存至"
   no_formats: "没有可用格式"
   select_format: "选择格式"
+  formats_available: "可用格式"
+  selected_format: "格式"
+  quality_hint: "使用 -q 选择画质，例如：vget -q 720p <url>"
 
 errors:
   config_not_found: "未找到配置文件"

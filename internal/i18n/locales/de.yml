@@ -45,6 +45,9 @@ download:
   file_saved: "Datei gespeichert unter"
   no_formats: "Keine Formate verfügbar"
   select_format: "Format auswählen"
+  formats_available: "Verfügbare Formate"
+  selected_format: "Format"
+  quality_hint: "Mit -q Qualität wählen, z.B.: vget -q 720p <url>"
 
 errors:
   config_not_found: "Konfigurationsdatei nicht gefunden"

@@ -45,6 +45,9 @@ download:
   file_saved: "保存先"
   no_formats: "利用可能なフォーマットがありません"
   select_format: "フォーマットを選択"
+  formats_available: "利用可能なフォーマット"
+  selected_format: "フォーマット"
+  quality_hint: "-q で画質を選択できます。例：vget -q 720p <url>"
 
 errors:
   config_not_found: "設定ファイルが見つかりません"

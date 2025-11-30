@@ -16,6 +16,7 @@ var (
 	extractInfoStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("86"))
 	extractDoneStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("42"))
 	extractErrStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("196"))
+	extractHintStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("248"))
 )
 
 // extractState holds extraction state
@@ -114,12 +115,20 @@ func (m extractModel) View() string {
 	}
 
 	if done && result != nil {
-		return fmt.Sprintf("\n  %s %s\n  ID: %s  |  Formats: %d\n\n",
-			extractDoneStyle.Render("✓"),
-			m.t.Download.Completed,
-			extractInfoStyle.Render(result.ID),
-			len(result.Formats),
-		)
+		var s string
+		s += fmt.Sprintf("\n  %s %s\n", extractDoneStyle.Render("✓"), m.t.Download.Completed)
+		s += fmt.Sprintf("  ID: %s\n\n", extractInfoStyle.Render(result.ID))
+
+		// List all available formats
+		s += fmt.Sprintf("  %s:\n", m.t.Download.FormatsAvailable)
+		for _, f := range result.Formats {
+			s += fmt.Sprintf("    • %s %dx%d (%s)\n", f.Quality, f.Width, f.Height, f.Ext)
+		}
+		s += "\n"
+
+		// Hint for quality selection
+		s += fmt.Sprintf("  %s\n\n", extractHintStyle.Render(m.t.Download.QualityHint))
+		return s
 	}
 
 	return fmt.Sprintf("\n  %s %s: %s\n\n",

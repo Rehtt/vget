@@ -45,6 +45,9 @@ download:
   file_saved: "Fichier enregistré dans"
   no_formats: "Aucun format disponible"
   select_format: "Sélectionner le format"
+  formats_available: "Formats disponibles"
+  selected_format: "Format"
+  quality_hint: "Utilisez -q pour choisir la qualité, ex: vget -q 720p <url>"
 
 errors:
   config_not_found: "Fichier de configuration introuvable"

@@ -84,7 +84,7 @@ func Run(args []string) error {
 		return errors.New(t.Download.NoFormats)
 	}
 
-	fmt.Printf("  Format: %s (%s)\n", format.Quality, format.Ext)
+	fmt.Printf("  %s: %s (%s)\n", t.Download.SelectedFormat, format.Quality, format.Ext)
 
 	// Determine output filename
 	output := opts.Output

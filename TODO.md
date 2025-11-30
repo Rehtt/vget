@@ -7,6 +7,7 @@
   - Proxy settings
   - Default output directory
   - Default format/quality
+- [ ] self update
 - [ ] Bulk download from txt file
   - Read URLs from txt file
   - Sequential or parallel processing

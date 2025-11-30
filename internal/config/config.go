@@ -14,8 +14,17 @@ const (
 )
 
 type Config struct {
+	// Language for metadata (e.g., "en", "zh", "ja")
+	Language string `yaml:"language,omitempty"`
+
+	// Proxy URL (e.g., "http://127.0.0.1:7890", "socks5://127.0.0.1:1080")
+	Proxy string `yaml:"proxy,omitempty"`
+
 	// Default output directory
 	OutputDir string `yaml:"output_dir,omitempty"`
+
+	// Preferred format (e.g., "mp4", "webm", "best")
+	Format string `yaml:"format,omitempty"`
 
 	// Default quality preference (e.g., "1080p", "720p", "best")
 	Quality string `yaml:"quality,omitempty"`
@@ -27,7 +36,10 @@ type Config struct {
 // DefaultConfig returns a config with sensible defaults
 func DefaultConfig() *Config {
 	return &Config{
+		Language:         "en",
+		Proxy:            "",
 		OutputDir:        ".",
+		Format:           "mp4",
 		Quality:          "best",
 		FilenameTemplate: "{{.ID}}.{{.Ext}}",
 	}

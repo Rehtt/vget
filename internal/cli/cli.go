@@ -9,6 +9,7 @@ import (
 	"github.com/guiyumin/vget/internal/config"
 	"github.com/guiyumin/vget/internal/downloader"
 	"github.com/guiyumin/vget/internal/extractor"
+	"github.com/guiyumin/vget/internal/updater"
 	"github.com/guiyumin/vget/internal/version"
 )
 
@@ -27,6 +28,8 @@ func Run(args []string) error {
 		switch args[0] {
 		case "init":
 			return runInit()
+		case "update":
+			return runUpdate()
 		}
 	}
 
@@ -143,12 +146,28 @@ func selectFormat(formats []extractor.Format, preferred string) *extractor.Forma
 }
 
 func runInit() error {
-	if err := config.Init(); err != nil {
+	if config.Exists() {
+		path, _ := config.ConfigPath()
+		return fmt.Errorf("%s already exists", path)
+	}
+
+	// Run interactive wizard
+	cfg, err := config.RunInitWizard()
+	if err != nil {
 		return err
 	}
 
-	fmt.Printf("Created %s with default settings.\n", config.ConfigFileYml)
+	// Save config
+	if err := config.Save(cfg); err != nil {
+		return err
+	}
+
+	fmt.Printf("\nCreated %s\n", config.ConfigFileYml)
 	return nil
+}
+
+func runUpdate() error {
+	return updater.Update()
 }
 
 func printUsage() {
@@ -160,6 +179,7 @@ Usage:
 
 Commands:
   init           Create a .vget.yml config file
+  update         Update vget to the latest version
 
 Options:
   -o <file>      Output filename

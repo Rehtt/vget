@@ -1,6 +1,6 @@
 # vget – Product Requirement Document (PRD)
 
-**Version:** 1.0
+**Version:** 1.1
 **Author:** Yumin
 **Language:** Golang
 **UI:** Bubble Tea (TUI)
@@ -12,36 +12,59 @@
 
 ### One-Line Vision
 
-**vget:** A modern, multi-source, minimalist, high-speed video downloader that works like wget, functions like yt-dlp, and features a beautiful Bubble Tea TUI.
+**vget:** A modern, minimalist, high-speed video downloader that works like wget, with a beautiful Bubble Tea TUI. Starting with X/Twitter, expanding to more platforms.
 
 ### Core Philosophy
 
 vget's core value is not "protocol-level innovation", but rather:
 
-- **Ultimate user experience**
-- **Out-of-the-box multi-source capabilities**
-- **Clean architecture**
-- **Plugin extension ecosystem**
-- **Modern CLI & TUI that developers love**
-- **Experience-first approach with Golang + Bubble Tea + Worker Pool**
+- **Ultimate user experience** - Simple CLI, beautiful TUI
+- **Single binary distribution** - No Python/Node dependencies
+- **Clean architecture** - Extensible extractor system
+- **Modern developer experience** - Golang + Bubble Tea + Worker Pool
+
+### Why Not Just Use yt-dlp?
+
+| Aspect | yt-dlp | vget |
+|--------|--------|------|
+| Installation | Python + pip | Single binary |
+| UI | CLI only | CLI + Bubble Tea TUI |
+| Complexity | 500+ flags | Minimal, opinionated |
+| Focus | 1000+ sites | Quality over quantity |
+
+vget aims to be the "modern wget for videos" - simple, fast, beautiful.
 
 ---
 
 ## 2. Product Goals
 
-### 2.1 MVP Goals (Achievable within 30 days)
+### 2.1 MVP Goals (v0.1 - Twitter Focus)
 
-- Support MP4 direct link downloads
-- Support HLS (.m3u8)
-- Support DASH (.mpd)
-- Support resume/checkpoint recovery
+**Target:** Working Twitter/X video downloader
+
+- [x] Project structure setup
+- [ ] Twitter/X extractor (native Go, no yt-dlp dependency)
+  - Bearer token + guest token authentication
+  - Tweet API parsing
+  - Video variant extraction (multiple qualities)
+- [ ] Direct MP4 downloader with progress bar
+- [ ] HLS (.m3u8) support (Twitter uses this for some videos)
+- [ ] Simple CLI: `vget <twitter-url>`
+- [ ] Auto-select best quality
+- [ ] Basic retry on failure
+
+### 2.2 v0.2 Goals
+
 - Multi-threaded segmented downloads (range requests)
-- Simple CLI: `vget URL`
-- Optional: `vget --ui URL` to launch Bubble Tea TUI
-- Automatic best quality selection
-- Automatic retry and recovery
-- Cookie/header support
-- Modern progress experience (TUI + CLI progress bars)
+- Resume/checkpoint recovery (`.vget-meta.json`)
+- Output filename customization (`-o`)
+- Proxy support (`--proxy`)
+
+### 2.3 v0.3 Goals
+
+- Bubble Tea TUI (`vget --ui`)
+- More platform extractors (based on demand)
+- Optional yt-dlp bridge for unsupported sites
 
 ---
 
@@ -97,18 +120,58 @@ URL → Extractor → (MP4 / HLS / DASH / Playlist)
 
 ### 4.2 Extractor Layer (URL Parsing)
 
-vget's soul is the abstracted extractor system:
+#### Extractor Interface
 
-| Protocol | Support |
-|----------|---------|
-| MP4 | Direct GET |
-| HLS | m3u8 parsing, quality selection |
-| DASH | mpd XML parsing |
-| Playlist | Auto merge to queue |
-| Cookie / UA | User-provided cookies.txt |
-| Header Override | CLI parameter specification |
+```go
+type Extractor interface {
+    // Match returns true if this extractor can handle the URL
+    Match(url string) bool
+    // Extract returns video info (title, formats, etc.)
+    Extract(url string) (*VideoInfo, error)
+}
 
-Future extensibility: Plugin system similar to yt-dlp extractors (without built-in sensitive site support).
+type VideoInfo struct {
+    ID       string
+    Title    string
+    Formats  []Format  // Multiple qualities available
+    Duration int
+}
+
+type Format struct {
+    URL      string
+    Quality  string    // "1080p", "720p", etc.
+    Ext      string    // "mp4", "m3u8"
+    Width    int
+    Height   int
+    Bitrate  int
+}
+```
+
+#### Supported Extractors
+
+| Extractor | Status | Notes |
+|-----------|--------|-------|
+| Twitter/X | MVP | Native Go implementation |
+| Direct MP4 | MVP | Content-Type detection |
+| HLS | MVP | m3u8 parsing |
+| DASH | v0.2 | mpd XML parsing |
+| yt-dlp bridge | v0.3 | Optional fallback |
+
+#### Twitter/X Extractor Details
+
+```
+URL: https://x.com/user/status/123456789
+           ↓
+    Extract tweet ID
+           ↓
+    Get guest token (POST /1.1/guest/activate.json)
+           ↓
+    Fetch tweet (GET /1.1/statuses/show/{id}.json)
+           ↓
+    Parse extended_entities.media[].video_info.variants
+           ↓
+    Return VideoInfo with all quality options
+```
 
 ### 4.3 CLI Specification
 
@@ -172,30 +235,30 @@ vget --info <url>
 
 ```
 /cmd/vget
-    main.go
+    main.go              # Entry point, CLI parsing
 /internal
     /cli
-        parser.go
+        cli.go           # Flag parsing, command handling
     /extractor
-        mp4.go
-        hls.go
-        dash.go
-        util.go
+        extractor.go     # Extractor interface
+        twitter.go       # Twitter/X extractor
+        direct.go        # Direct MP4 URL extractor
+        hls.go           # HLS m3u8 extractor
+        registry.go      # Extractor registration & matching
     /downloader
-        manager.go
-        worker.go
-        merge.go
-        retry.go
+        downloader.go    # Download interface
+        http.go          # HTTP downloader (single file)
+        segmented.go     # Multi-segment downloader (v0.2)
+        progress.go      # Progress tracking & display
     /tui
-        app.go
+        app.go           # Bubble Tea app (v0.3)
         model.go
         view.go
-    /utils
-        file.go
-        http.go
-        log.go
-/plugins
-    example_plugin.go
+    /config
+        config.go        # User configuration
+/pkg
+    /version
+        version.go       # Version info
 ```
 
 ---

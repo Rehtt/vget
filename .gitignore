@@ -1,0 +1,24 @@
+# Build output
+/build/
+/dist/
+
+# Binary
+/vget
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test output
+coverage.out
+*.test
+
+# Temporary files
+*.tmp
+.vget-meta.json

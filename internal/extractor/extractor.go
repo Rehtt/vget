@@ -1,0 +1,51 @@
+package extractor
+
+import "fmt"
+
+// Extractor defines the interface for video extractors
+type Extractor interface {
+	// Name returns the extractor name (e.g., "twitter", "direct")
+	Name() string
+
+	// Match returns true if this extractor can handle the URL
+	Match(url string) bool
+
+	// Extract retrieves video information from the URL
+	Extract(url string) (*VideoInfo, error)
+}
+
+// VideoInfo contains extracted video metadata
+type VideoInfo struct {
+	ID          string
+	Title       string
+	Description string
+	Duration    int // seconds
+	Thumbnail   string
+	Formats     []Format
+	Uploader    string
+	UploadDate  string
+}
+
+// Format represents a single video format/quality option
+type Format struct {
+	URL       string
+	Quality   string // "1080p", "720p", etc.
+	Ext       string // "mp4", "m3u8", "ts"
+	Width     int
+	Height    int
+	Bitrate   int
+	FileSize  int64
+	VideoOnly bool
+	AudioOnly bool
+}
+
+// QualityLabel returns a human-readable quality label
+func (f *Format) QualityLabel() string {
+	if f.Quality != "" {
+		return f.Quality
+	}
+	if f.Height > 0 {
+		return fmt.Sprintf("%dp", f.Height)
+	}
+	return "unknown"
+}

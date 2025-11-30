@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -21,6 +20,7 @@ const asciiArt = `
 `
 
 var (
+	logoStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("86")).Bold(true)
 	titleStyle       = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("86"))
 	stepStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("248"))
 	selectedStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("86")).Bold(true)
@@ -298,6 +298,10 @@ func (m model) View() string {
 	var b strings.Builder
 	t := m.t()
 
+	// Logo
+	b.WriteString(logoStyle.Render(asciiArt))
+	b.WriteString("\n\n")
+
 	// Progress indicator
 	progress := fmt.Sprintf(t.Config.StepOf, m.currentStep+1, 6)
 	b.WriteString(stepStyle.Render(progress))
@@ -398,14 +402,6 @@ func (m model) renderReview() string {
 
 // RunInitWizard runs an interactive TUI wizard to configure vget
 func RunInitWizard() (*Config, error) {
-	// Show ASCII art banner
-	fmt.Print("\033[36m") // Cyan color
-	fmt.Print(asciiArt)
-	fmt.Print("\033[0m") // Reset color
-	fmt.Println("  A modern, blazing-fast, cross-platform downloader cli")
-	fmt.Println()
-	time.Sleep(1 * time.Second)
-
 	// Load existing config or use defaults
 	cfg := LoadOrDefault()
 

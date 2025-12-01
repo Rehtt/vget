@@ -8,6 +8,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Build
 go build ./cmd/vget
 
+# Build to specific directory
+go build -o build/vget ./cmd/vget
+
 # Run directly
 go run ./cmd/vget
 
@@ -17,13 +20,27 @@ go build -ldflags "-X github.com/guiyumin/vget/internal/version.Version=1.0.0" .
 
 ## Architecture
 
-vget is a video downloader CLI built with Go. It uses Cobra for command parsing and Bubbletea for interactive TUI elements (spinners, progress bars).
+vget is a media downloader CLI built with Go. It uses Cobra for command parsing and Bubbletea for interactive TUI elements (spinners, progress bars).
 
 ### Core Flow
 
 1. **CLI Layer** (`internal/cli/`) - Cobra commands parse flags and dispatch to handlers
-2. **Extractor Layer** (`internal/extractor/`) - URL matching and video metadata extraction
+2. **Extractor Layer** (`internal/extractor/`) - URL matching and media metadata extraction
 3. **Downloader Layer** (`internal/downloader/`) - HTTP download with Bubbletea progress TUI
+
+### Media Types
+
+The `MediaType` enum in `internal/extractor/extractor.go` defines supported media types:
+
+- `MediaTypeVideo` - Video files (Twitter, YouTube, etc.)
+- `MediaTypeAudio` - Audio files (podcasts)
+- `MediaTypePDF` - PDF documents
+- `MediaTypeEPUB` - EPUB ebooks
+- `MediaTypeMOBI` - MOBI ebooks
+- `MediaTypeAZW` - AZW ebooks
+- `MediaTypeUnknown` - Fallback (treated as video)
+
+Each type has specific terminal output formatting in `internal/cli/extract.go`.
 
 ### Extractor Pattern
 
@@ -37,14 +54,25 @@ type Extractor interface {
 }
 ```
 
-Then register it in `internal/extractor/registry.go`:
+Set the appropriate `MediaType` in the returned `VideoInfo`:
 
 ```go
-func init() {
-    Register(&TwitterExtractor{})
-    Register(&YourNewExtractor{})  // Add here
-}
+return &VideoInfo{
+    ID:        "...",
+    Title:     "...",
+    MediaType: MediaTypeAudio, // or MediaTypeVideo, etc.
+    Formats:   []Format{...},
+}, nil
 ```
+
+Extractors are auto-registered via `init()` functions. See `xiaoyuzhou.go` or `twitter.go` for examples.
+
+### Commands
+
+- `vget <url>` - Download media from URL
+- `vget init` - Interactive config wizard
+- `vget update` - Self-update to latest version
+- `vget search --podcast <query>` - Search Xiaoyuzhou podcasts
 
 ### i18n
 

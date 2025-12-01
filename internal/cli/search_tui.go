@@ -314,10 +314,22 @@ func (m searchModel) View() string {
 		b.WriteString(lines[i] + "\n")
 	}
 
-	// Show scroll indicator if needed
+	// Show scroll indicator if needed (showing item numbers, not line numbers)
 	if len(lines) > visible {
-		scrollInfo := fmt.Sprintf(" (%d-%d of %d)", startLine+1, endLine, len(lines))
-		b.WriteString(searchDimStyle.Render(scrollInfo) + "\n")
+		// Find first and last visible item indices
+		firstItem, lastItem := -1, -1
+		for i := startLine; i < endLine; i++ {
+			if lineToIdx[i] >= 0 {
+				if firstItem < 0 {
+					firstItem = lineToIdx[i] + 1 // 1-indexed for display
+				}
+				lastItem = lineToIdx[i] + 1
+			}
+		}
+		if firstItem > 0 && lastItem > 0 {
+			scrollInfo := fmt.Sprintf(" (%d-%d of %d)", firstItem, lastItem, m.totalItems)
+			b.WriteString(searchDimStyle.Render(scrollInfo) + "\n")
+		}
 	}
 
 	// Selection count and help

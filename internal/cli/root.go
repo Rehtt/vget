@@ -145,15 +145,20 @@ func runWebDAVDownload(rawURL, lang string) error {
 
 	fmt.Printf("  WebDAV: %s (%s)\n", fileInfo.Name, formatSize(fileInfo.Size))
 
-	// Open the file for reading
-	reader, size, err := client.Open(ctx, filePath)
-	if err != nil {
-		return fmt.Errorf("failed to open file: %w", err)
-	}
+	// Use multi-stream download for better performance
+	fileURL := client.GetFileURL(filePath)
+	authHeader := client.GetAuthHeader()
+	msConfig := downloader.DefaultMultiStreamConfig()
 
-	// Download with progress
-	dl := downloader.New(lang)
-	return dl.DownloadFromReader(reader, size, outputFile, fileInfo.Name)
+	return downloader.RunMultiStreamDownloadWithAuthTUI(
+		fileURL,
+		authHeader,
+		outputFile,
+		fileInfo.Name,
+		lang,
+		fileInfo.Size,
+		msConfig,
+	)
 }
 
 func formatSize(b int64) string {

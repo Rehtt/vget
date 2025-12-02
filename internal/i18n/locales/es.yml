@@ -42,6 +42,8 @@ download:
   progress: "Progreso"
   speed: "Velocidad"
   eta: "Tiempo restante"
+  elapsed: "Tiempo transcurrido"
+  avg_speed: "Velocidad media"
   file_saved: "Archivo guardado en"
   no_formats: "No hay formatos disponibles"
   select_format: "Seleccionar formato"

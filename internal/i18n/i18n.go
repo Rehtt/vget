@@ -66,6 +66,8 @@ type DownloadTranslations struct {
 	Progress         string `yaml:"progress"`
 	Speed            string `yaml:"speed"`
 	ETA              string `yaml:"eta"`
+	Elapsed          string `yaml:"elapsed"`
+	AvgSpeed         string `yaml:"avg_speed"`
 	FileSaved        string `yaml:"file_saved"`
 	NoFormats        string `yaml:"no_formats"`
 	SelectFormat     string `yaml:"select_format"`

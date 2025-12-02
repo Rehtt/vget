@@ -42,6 +42,8 @@ download:
   progress: "進捗"
   speed: "速度"
   eta: "残り時間"
+  elapsed: "経過時間"
+  avg_speed: "平均速度"
   file_saved: "保存先"
   no_formats: "利用可能なフォーマットがありません"
   select_format: "フォーマットを選択"

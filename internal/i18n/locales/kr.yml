@@ -42,6 +42,8 @@ download:
   progress: "진행률"
   speed: "속도"
   eta: "남은 시간"
+  elapsed: "경과 시간"
+  avg_speed: "평균 속도"
   file_saved: "파일 저장됨"
   no_formats: "사용 가능한 형식 없음"
   select_format: "형식 선택"

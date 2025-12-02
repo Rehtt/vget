@@ -2,8 +2,10 @@ package webdav
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"path"
 	"strings"
@@ -14,8 +16,10 @@ import (
 
 // Client wraps go-webdav client with convenience methods
 type Client struct {
-	client  *webdav.Client
-	baseURL string
+	client   *webdav.Client
+	baseURL  string
+	username string
+	password string
 }
 
 // FileInfo contains information about a remote file
@@ -58,9 +62,17 @@ func NewClient(rawURL string) (*Client, error) {
 		return nil, fmt.Errorf("failed to create WebDAV client: %w", err)
 	}
 
+	var username, password string
+	if parsed.User != nil {
+		username = parsed.User.Username()
+		password, _ = parsed.User.Password()
+	}
+
 	return &Client{
-		client:  client,
-		baseURL: baseURL,
+		client:   client,
+		baseURL:  baseURL,
+		username: username,
+		password: password,
 	}, nil
 }
 
@@ -188,12 +200,56 @@ func NewClientFromConfig(server *config.WebDAVServer) (*Client, error) {
 	}
 
 	return &Client{
-		client:  client,
-		baseURL: server.URL,
+		client:   client,
+		baseURL:  server.URL,
+		username: server.Username,
+		password: server.Password,
 	}, nil
 }
 
 // ExtractFilename extracts the filename from a WebDAV path
 func ExtractFilename(filePath string) string {
 	return path.Base(filePath)
+}
+
+// GetFileURL returns the full HTTP URL for a file path
+func (c *Client) GetFileURL(filePath string) string {
+	// Ensure path starts with /
+	if !strings.HasPrefix(filePath, "/") {
+		filePath = "/" + filePath
+	}
+	return c.baseURL + filePath
+}
+
+// GetAuthHeader returns the Basic Auth header value if credentials are set
+func (c *Client) GetAuthHeader() string {
+	if c.username == "" {
+		return ""
+	}
+	auth := c.username + ":" + c.password
+	return "Basic " + base64.StdEncoding.EncodeToString([]byte(auth))
+}
+
+// SupportsRangeRequests checks if the server supports HTTP Range requests for a file
+func (c *Client) SupportsRangeRequests(ctx context.Context, filePath string) (bool, error) {
+	fileURL := c.GetFileURL(filePath)
+
+	req, err := http.NewRequestWithContext(ctx, "HEAD", fileURL, nil)
+	if err != nil {
+		return false, err
+	}
+
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+	if auth := c.GetAuthHeader(); auth != "" {
+		req.Header.Set("Authorization", auth)
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return false, err
+	}
+	resp.Body.Close()
+
+	return resp.Header.Get("Accept-Ranges") == "bytes", nil
 }

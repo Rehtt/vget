@@ -42,6 +42,8 @@ download:
   progress: "Progress"
   speed: "Speed"
   eta: "ETA"
+  elapsed: "Elapsed"
+  avg_speed: "Avg speed"
   file_saved: "File saved to"
   no_formats: "No formats available"
   select_format: "Select format"

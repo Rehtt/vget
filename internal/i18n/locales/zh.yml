@@ -42,6 +42,8 @@ download:
   progress: "进度"
   speed: "速度"
   eta: "剩余时间"
+  elapsed: "耗时"
+  avg_speed: "平均速度"
   file_saved: "文件已保存至"
   no_formats: "没有可用格式"
   select_format: "选择格式"

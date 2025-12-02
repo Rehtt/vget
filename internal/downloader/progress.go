@@ -24,13 +24,15 @@ var (
 
 // downloadState holds the shared download state
 type downloadState struct {
-	mu        sync.RWMutex
-	current   int64
-	total     int64
-	speed     float64
-	done      bool
-	err       error
-	startTime time.Time
+	mu          sync.RWMutex
+	current     int64
+	total       int64
+	speed       float64
+	done        bool
+	err         error
+	startTime   time.Time
+	endTime     time.Time
+	finalSpeed  float64
 }
 
 func (s *downloadState) update(current, total int64) {
@@ -47,6 +49,11 @@ func (s *downloadState) update(current, total int64) {
 func (s *downloadState) setDone() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.endTime = time.Now()
+	elapsed := s.endTime.Sub(s.startTime).Seconds()
+	if elapsed > 0 {
+		s.finalSpeed = float64(s.current) / elapsed
+	}
 	s.done = true
 }
 
@@ -61,6 +68,15 @@ func (s *downloadState) get() (int64, int64, float64, bool, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.current, s.total, s.speed, s.done, s.err
+}
+
+func (s *downloadState) getFinal() (elapsed time.Duration, avgSpeed float64) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if s.endTime.IsZero() {
+		return time.Since(s.startTime), s.speed
+	}
+	return s.endTime.Sub(s.startTime), s.finalSpeed
 }
 
 // tickMsg triggers UI updates
@@ -171,12 +187,17 @@ func (m downloadModel) View() string {
 	}
 
 	if done {
-		return fmt.Sprintf("\n  %s %s\n  %s: %s (%s)\n\n",
+		elapsed, avgSpeed := m.state.getFinal()
+		return fmt.Sprintf("\n  %s %s\n  %s: %s (%s)\n  %s: %s  |  %s: %s/s\n\n",
 			doneStyle.Render("✓"),
 			m.t.Download.Completed,
 			m.t.Download.FileSaved,
 			m.output,
 			formatBytes(current),
+			m.t.Download.Elapsed,
+			formatDuration(elapsed),
+			m.t.Download.AvgSpeed,
+			formatBytes(int64(avgSpeed)),
 		)
 	}
 

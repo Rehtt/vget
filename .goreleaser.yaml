@@ -23,22 +23,19 @@ builds:
     goarch:
       - amd64
       - arm64
-      - "386"
       - arm
     goarm:
       - "7"
     ignore:
-      # Windows ARM not supported (32-bit and 64-bit)
+      # Windows: only amd64 supported
       - goos: windows
         goarch: arm
       - goos: windows
         goarch: arm64
-      # macOS 386 and arm not supported
-      - goos: darwin
-        goarch: "386"
+      # macOS: only amd64 and arm64 supported
       - goos: darwin
         goarch: arm
-      # Linux 386 on arm not applicable
+      # Linux armv6 not needed
       - goos: linux
         goarch: arm
         goarm: "6"

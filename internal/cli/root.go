@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/guiyumin/vget/internal/extractor"
 	"github.com/guiyumin/vget/internal/i18n"
 	"github.com/guiyumin/vget/internal/version"
+	"github.com/guiyumin/vget/internal/webdav"
 	"github.com/spf13/cobra"
 )
 
@@ -54,6 +56,11 @@ func runDownload(url string) error {
 		fmt.Fprintf(os.Stderr, "\033[33m%s. Run 'vget init'.\033[0m\n", t.Errors.ConfigNotFound)
 	}
 
+	// Handle WebDAV URLs specially
+	if webdav.IsWebDAVURL(url) {
+		return runWebDAVDownload(url, cfg.Language)
+	}
+
 	// Find matching extractor
 	ext := extractor.Match(url)
 	if ext == nil {
@@ -79,6 +86,87 @@ func runDownload(url string) error {
 	default:
 		return fmt.Errorf("unsupported media type")
 	}
+}
+
+func runWebDAVDownload(rawURL, lang string) error {
+	ctx := context.Background()
+	cfg := config.LoadOrDefault()
+
+	var client *webdav.Client
+	var filePath string
+	var err error
+
+	// Check if it's a remote path (e.g., "pikpak:/path/to/file")
+	if webdav.IsRemotePath(rawURL) {
+		serverName, path, err := webdav.ParseRemotePath(rawURL)
+		if err != nil {
+			return err
+		}
+		filePath = path
+
+		server := cfg.GetWebDAVServer(serverName)
+		if server == nil {
+			return fmt.Errorf("WebDAV server '%s' not found. Add it with 'vget config webdav add %s'", serverName, serverName)
+		}
+
+		client, err = webdav.NewClientFromConfig(server)
+		if err != nil {
+			return fmt.Errorf("failed to create WebDAV client: %w", err)
+		}
+	} else {
+		// Create WebDAV client from URL
+		client, err = webdav.NewClient(rawURL)
+		if err != nil {
+			return fmt.Errorf("failed to create WebDAV client: %w", err)
+		}
+
+		// Parse the file path from URL
+		filePath, err = webdav.ParseURL(rawURL)
+		if err != nil {
+			return fmt.Errorf("invalid WebDAV URL: %w", err)
+		}
+	}
+
+	// Get file info
+	fileInfo, err := client.Stat(ctx, filePath)
+	if err != nil {
+		return fmt.Errorf("failed to get file info: %w", err)
+	}
+
+	if fileInfo.IsDir {
+		return fmt.Errorf("cannot download directory, please specify a file")
+	}
+
+	// Determine output filename
+	outputFile := output
+	if outputFile == "" {
+		outputFile = webdav.ExtractFilename(filePath)
+	}
+
+	fmt.Printf("  WebDAV: %s (%s)\n", fileInfo.Name, formatSize(fileInfo.Size))
+
+	// Open the file for reading
+	reader, size, err := client.Open(ctx, filePath)
+	if err != nil {
+		return fmt.Errorf("failed to open file: %w", err)
+	}
+
+	// Download with progress
+	dl := downloader.New(lang)
+	return dl.DownloadFromReader(reader, size, outputFile, fileInfo.Name)
+}
+
+func formatSize(b int64) string {
+	const unit = 1024
+	if b < unit {
+		return fmt.Sprintf("%d B", b)
+	}
+	div, exp := int64(unit), 0
+	for n := b / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB", float64(b)/float64(div), "KMGTPE"[exp])
 }
 
 func downloadVideo(m *extractor.VideoMedia, dl *downloader.Downloader, t *i18n.Translations) error {

@@ -320,3 +320,73 @@ func downloadWithProgress(client *http.Client, url, output string, state *downlo
 
 	return nil
 }
+
+// RunDownloadFromReaderTUI runs the download from a reader with a TUI progress display
+func RunDownloadFromReaderTUI(reader io.ReadCloser, size int64, output, displayID, lang string) error {
+	state := &downloadState{
+		startTime: time.Now(),
+	}
+
+	// Start download in background
+	go func() {
+		err := downloadFromReaderWithProgress(reader, size, output, state)
+		if err != nil {
+			state.setError(err)
+		} else {
+			state.setDone()
+		}
+	}()
+
+	model := newDownloadModel(output, displayID, lang, state)
+
+	p := tea.NewProgram(model)
+	finalModel, err := p.Run()
+	if err != nil {
+		return err
+	}
+
+	m := finalModel.(downloadModel)
+	_, _, _, _, downloadErr := m.state.get()
+	if downloadErr != nil {
+		return downloadErr
+	}
+
+	return nil
+}
+
+func downloadFromReaderWithProgress(reader io.ReadCloser, total int64, output string, state *downloadState) error {
+	defer reader.Close()
+
+	state.update(0, total)
+
+	// Create output file
+	file, err := os.Create(output)
+	if err != nil {
+		return fmt.Errorf("failed to create output file: %w", err)
+	}
+	defer file.Close()
+
+	// Download with progress tracking
+	buf := make([]byte, 32*1024)
+	var current int64
+
+	for {
+		n, err := reader.Read(buf)
+		if n > 0 {
+			_, writeErr := file.Write(buf[:n])
+			if writeErr != nil {
+				return fmt.Errorf("failed to write file: %w", writeErr)
+			}
+			current += int64(n)
+			state.update(current, total)
+		}
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("download failed: %w", err)
+		}
+	}
+
+	return nil
+}

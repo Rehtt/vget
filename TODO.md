@@ -36,6 +36,10 @@
 - [ ] Rate limiting
 - [ ] Cookie/auth support
 - [ ] Metadata embedding
+- [ ] WebDAV client integration
+  - Connect to PikPak, other WebDAV-compatible cloud storage
+  - Upload downloaded files directly to cloud
+  - Lighter alternative to rclone for single-purpose use
 
 ## Extractors
 
@@ -47,6 +51,15 @@
 - [ ] YouTube
 - [ ] TikTok
 - [ ] Apple Podcasts
+- [ ] Xiaohongshu (小红书/RED)
+  - Requires browser automation (Rod) + cookie auth
+  - Reference: [xpzouying/xiaohongshu-mcp](https://github.com/xpzouying/xiaohongshu-mcp) (7.2k stars, stable 1+ year)
+  - Extraction approach:
+    - Navigate to `https://www.xiaohongshu.com/explore/{feedID}?xsec_token=...`
+    - Extract `window.__INITIAL_STATE__.note.noteDetailMap` via JS
+    - Parse JSON for images (`urlDefault`) and video URLs
+  - Feasibility: Moderate effort, more achievable than Instagram
+  - Note: yt-dlp also has extractor but frequently breaks due to bot detection
 
 ## Tracking (Versatile Get)
 

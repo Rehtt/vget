@@ -2,6 +2,7 @@ package downloader
 
 import (
 	"fmt"
+	"io"
 	"time"
 )
 
@@ -20,6 +21,12 @@ func New(lang string) *Downloader {
 // Download downloads a file from URL to the specified path using TUI
 func (d *Downloader) Download(url, output, videoID string) error {
 	return RunDownloadTUI(url, output, videoID, d.lang)
+}
+
+// DownloadFromReader downloads from an io.ReadCloser to the specified path using TUI
+// This is useful for WebDAV and other sources that provide a reader instead of URL
+func (d *Downloader) DownloadFromReader(reader io.ReadCloser, size int64, output, displayID string) error {
+	return RunDownloadFromReaderTUI(reader, size, output, displayID, d.lang)
 }
 
 func formatBytes(b int64) string {

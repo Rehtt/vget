@@ -52,6 +52,47 @@ type Config struct {
 
 	// Default output filename template
 	FilenameTemplate string `yaml:"filename_template,omitempty"`
+
+	// WebDAV servers configuration
+	WebDAVServers map[string]WebDAVServer `yaml:"webdavServers,omitempty"`
+}
+
+// WebDAVServer represents a WebDAV server configuration
+type WebDAVServer struct {
+	// URL is the WebDAV server URL (e.g., "https://pikpak.com/dav")
+	URL string `yaml:"url"`
+
+	// Username for authentication
+	Username string `yaml:"username,omitempty"`
+
+	// Password for authentication
+	Password string `yaml:"password,omitempty"`
+}
+
+// GetWebDAVServer returns a WebDAV server by name, or nil if not found
+func (c *Config) GetWebDAVServer(name string) *WebDAVServer {
+	if c.WebDAVServers == nil {
+		return nil
+	}
+	if s, ok := c.WebDAVServers[name]; ok {
+		return &s
+	}
+	return nil
+}
+
+// SetWebDAVServer adds or updates a WebDAV server
+func (c *Config) SetWebDAVServer(name string, server WebDAVServer) {
+	if c.WebDAVServers == nil {
+		c.WebDAVServers = make(map[string]WebDAVServer)
+	}
+	c.WebDAVServers[name] = server
+}
+
+// DeleteWebDAVServer removes a WebDAV server by name
+func (c *Config) DeleteWebDAVServer(name string) {
+	if c.WebDAVServers != nil {
+		delete(c.WebDAVServers, name)
+	}
 }
 
 // DefaultConfig returns a config with sensible defaults

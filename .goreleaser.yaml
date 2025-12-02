@@ -44,16 +44,14 @@ builds:
         goarm: "6"
 
 archives:
-  - format: tar.gz
+  - formats:
+      - zip
     name_template: >-
       {{ .ProjectName }}_
       {{- .Version }}_
       {{- .Os }}_
       {{- .Arch }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
-    format_overrides:
-      - goos: windows
-        format: zip
     files:
       - README.md
       - LICENSE*

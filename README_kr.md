@@ -28,59 +28,32 @@ sudo mv vget /usr/local/bin/
 
 ## 명령어
 
-### 설정 초기화
+| 명령어                             | 설명                                  |
+|------------------------------------|---------------------------------------|
+| `vget [url]`                       | 미디어 다운로드 (`-o`, `-q`, `--info`) |
+| `vget ls <remote>:<path>`          | 원격 디렉토리 목록 (`--json`)         |
+| `vget init`                        | 대화형 설정 마법사                    |
+| `vget update`                      | 자동 업데이트                         |
+| `vget search --podcast <query>`    | 팟캐스트 검색                         |
+| `vget completion [shell]`          | 쉘 자동완성 스크립트 생성             |
+| `vget config show`                 | 설정 표시                             |
+| `vget config path`                 | 설정 파일 경로 표시                   |
+| `vget config webdav list`          | 설정된 WebDAV 서버 목록               |
+| `vget config webdav add <name>`    | WebDAV 서버 추가                      |
+| `vget config webdav show <name>`   | 서버 상세 정보 표시                   |
+| `vget config webdav delete <name>` | 서버 삭제                             |
 
-```bash
-vget init
-```
-
-대화형 마법사를 실행하여 설정 파일을 생성합니다.
-
-### 미디어 다운로드
-
-```bash
-vget <url>
-```
-
-지원되는 URL에서 오디오 또는 비디오를 다운로드합니다.
-
-**옵션:**
-
-- `-o, --output <file>` - 출력 파일명
-- `-q, --quality <quality>` - 선호 품질 (예: 1080p, 720p)
-- `--info` - 다운로드 없이 미디어 정보만 표시
-
-**예시:**
+### 예시
 
 ```bash
 vget https://twitter.com/user/status/123456789
 vget https://www.xiaoyuzhoufm.com/episode/abc123
 vget https://example.com/video -o my_video.mp4
 vget --info https://example.com/video
-```
-
-### 팟캐스트 검색
-
-```bash
-vget search --podcast <query>
-```
-
-팟캐스트를 대화형으로 검색합니다. 중국어 검색은 小宇宙를, 그 외에는 iTunes를 사용합니다.
-
-**예시:**
-
-```bash
 vget search --podcast "tech news"
-vget search --podcast "科技"
+vget pikpak:/path/to/file.mp4              # WebDAV 다운로드
+vget ls pikpak:/Movies                     # 원격 디렉토리 목록
 ```
-
-### vget 업데이트
-
-```bash
-vget update
-```
-
-vget을 최신 버전으로 업데이트합니다.
 
 ## 지원 소스
 

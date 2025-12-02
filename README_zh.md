@@ -28,59 +28,32 @@ sudo mv vget /usr/local/bin/
 
 ## 命令
 
-### 初始化配置
+| 命令                               | 描述                                  |
+|------------------------------------|---------------------------------------|
+| `vget [url]`                       | 下载媒体 (`-o`, `-q`, `--info`)       |
+| `vget ls <remote>:<path>`          | 列出远程目录 (`--json`)               |
+| `vget init`                        | 交互式配置向导                        |
+| `vget update`                      | 自动更新                              |
+| `vget search --podcast <query>`    | 搜索播客                              |
+| `vget completion [shell]`          | 生成 shell 补全脚本                   |
+| `vget config show`                 | 显示配置                              |
+| `vget config path`                 | 显示配置文件路径                      |
+| `vget config webdav list`          | 列出已配置的 WebDAV 服务器            |
+| `vget config webdav add <name>`    | 添加 WebDAV 服务器                    |
+| `vget config webdav show <name>`   | 显示服务器详情                        |
+| `vget config webdav delete <name>` | 删除服务器                            |
 
-```bash
-vget init
-```
-
-运行交互式向导创建配置文件。
-
-### 下载媒体
-
-```bash
-vget <url>
-```
-
-从支持的 URL 下载音频或视频。
-
-**参数：**
-
-- `-o, --output <file>` - 输出文件名
-- `-q, --quality <quality>` - 首选质量（如 1080p, 720p）
-- `--info` - 仅显示媒体信息，不下载
-
-**示例：**
+### 示例
 
 ```bash
 vget https://twitter.com/user/status/123456789
 vget https://www.xiaoyuzhoufm.com/episode/abc123
 vget https://example.com/video -o my_video.mp4
 vget --info https://example.com/video
-```
-
-### 搜索播客
-
-```bash
-vget search --podcast <query>
-```
-
-交互式搜索播客。中文搜索使用小宇宙，其他语言使用 iTunes。
-
-**示例：**
-
-```bash
-vget search --podcast "tech news"
 vget search --podcast "科技"
+vget pikpak:/path/to/file.mp4              # WebDAV 下载
+vget ls pikpak:/Movies                     # 列出远程目录
 ```
-
-### 更新 vget
-
-```bash
-vget update
-```
-
-更新 vget 到最新版本。
 
 ## 支持的来源
 

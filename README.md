@@ -28,59 +28,32 @@ Download `vget-windows-amd64.exe` from [Releases](https://github.com/guiyumin/vg
 
 ## Commands
 
-### Initialize config
+| Command                          | Description                           |
+|----------------------------------|---------------------------------------|
+| `vget [url]`                     | Download media (`-o`, `-q`, `--info`) |
+| `vget ls <remote>:<path>`        | List remote directory (`--json`)      |
+| `vget init`                      | Interactive config wizard             |
+| `vget update`                    | Self-update                           |
+| `vget search --podcast <query>`  | Search podcasts                       |
+| `vget completion [shell]`        | Generate shell completion script      |
+| `vget config show`               | Show config                           |
+| `vget config path`               | Show config file path                 |
+| `vget config webdav list`        | List configured WebDAV servers        |
+| `vget config webdav add <name>`  | Add a WebDAV server                   |
+| `vget config webdav show <name>` | Show server details                   |
+| `vget config webdav delete <name>` | Delete a server                     |
 
-```bash
-vget init
-```
-
-Run an interactive wizard to create a config file.
-
-### Download media
-
-```bash
-vget <url>
-```
-
-Download audio or video from a supported URL.
-
-**Flags:**
-
-- `-o, --output <file>` - Output filename
-- `-q, --quality <quality>` - Preferred quality (e.g., 1080p, 720p)
-- `--info` - Show media info without downloading
-
-**Examples:**
+### Examples
 
 ```bash
 vget https://twitter.com/user/status/123456789
 vget https://www.xiaoyuzhoufm.com/episode/abc123
 vget https://example.com/video -o my_video.mp4
 vget --info https://example.com/video
-```
-
-### Search podcasts
-
-```bash
-vget search --podcast <query>
-```
-
-Search for podcasts interactively. Chinese queries use Xiaoyuzhou, others use iTunes.
-
-**Examples:**
-
-```bash
 vget search --podcast "tech news"
-vget search --podcast "科技"
+vget pikpak:/path/to/file.mp4              # WebDAV download
+vget ls pikpak:/Movies                     # List remote directory
 ```
-
-### Update vget
-
-```bash
-vget update
-```
-
-Update vget to the latest version.
 
 ## Supported Sources
 

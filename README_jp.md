@@ -28,59 +28,32 @@ sudo mv vget /usr/local/bin/
 
 ## コマンド
 
-### 設定の初期化
+| コマンド                           | 説明                                  |
+|------------------------------------|---------------------------------------|
+| `vget [url]`                       | メディアをダウンロード (`-o`, `-q`, `--info`) |
+| `vget ls <remote>:<path>`          | リモートディレクトリを一覧表示 (`--json`) |
+| `vget init`                        | 対話式設定ウィザード                  |
+| `vget update`                      | 自動更新                              |
+| `vget search --podcast <query>`    | ポッドキャスト検索                    |
+| `vget completion [shell]`          | シェル補完スクリプトを生成            |
+| `vget config show`                 | 設定を表示                            |
+| `vget config path`                 | 設定ファイルのパスを表示              |
+| `vget config webdav list`          | 設定済み WebDAV サーバー一覧          |
+| `vget config webdav add <name>`    | WebDAV サーバーを追加                 |
+| `vget config webdav show <name>`   | サーバー詳細を表示                    |
+| `vget config webdav delete <name>` | サーバーを削除                        |
 
-```bash
-vget init
-```
-
-対話式ウィザードで設定ファイルを作成します。
-
-### メディアのダウンロード
-
-```bash
-vget <url>
-```
-
-対応する URL からオーディオまたはビデオをダウンロードします。
-
-**オプション：**
-
-- `-o, --output <file>` - 出力ファイル名
-- `-q, --quality <quality>` - 優先品質（例：1080p, 720p）
-- `--info` - ダウンロードせずにメディア情報を表示
-
-**例：**
+### 例
 
 ```bash
 vget https://twitter.com/user/status/123456789
 vget https://www.xiaoyuzhoufm.com/episode/abc123
 vget https://example.com/video -o my_video.mp4
 vget --info https://example.com/video
-```
-
-### ポッドキャスト検索
-
-```bash
-vget search --podcast <query>
-```
-
-ポッドキャストをインタラクティブに検索します。中国語のクエリは小宇宙、その他は iTunes を使用します。
-
-**例：**
-
-```bash
 vget search --podcast "tech news"
-vget search --podcast "科技"
+vget pikpak:/path/to/file.mp4              # WebDAV ダウンロード
+vget ls pikpak:/Movies                     # リモートディレクトリを一覧表示
 ```
-
-### vget の更新
-
-```bash
-vget update
-```
-
-vget を最新バージョンに更新します。
 
 ## 対応ソース
 

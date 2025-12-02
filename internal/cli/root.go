@@ -134,7 +134,7 @@ func runWebDAVDownload(rawURL, lang string) error {
 	}
 
 	if fileInfo.IsDir {
-		return fmt.Errorf("cannot download directory, please specify a file")
+		return fmt.Errorf("cannot download directory, use 'vget ls %s' to list contents", rawURL)
 	}
 
 	// Determine output filename

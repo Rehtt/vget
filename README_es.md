@@ -28,59 +28,32 @@ Descarga `vget-windows-amd64.exe` desde [Releases](https://github.com/guiyumin/v
 
 ## Comandos
 
-### Inicializar configuración
+| Comando                            | Descripción                           |
+|------------------------------------|---------------------------------------|
+| `vget [url]`                       | Descargar medios (`-o`, `-q`, `--info`) |
+| `vget ls <remote>:<path>`          | Listar directorio remoto (`--json`)   |
+| `vget init`                        | Asistente de configuración interactivo |
+| `vget update`                      | Actualización automática              |
+| `vget search --podcast <query>`    | Buscar podcasts                       |
+| `vget completion [shell]`          | Generar script de autocompletado      |
+| `vget config show`                 | Mostrar configuración                 |
+| `vget config path`                 | Mostrar ruta del archivo de config    |
+| `vget config webdav list`          | Listar servidores WebDAV configurados |
+| `vget config webdav add <name>`    | Agregar servidor WebDAV               |
+| `vget config webdav show <name>`   | Mostrar detalles del servidor         |
+| `vget config webdav delete <name>` | Eliminar servidor                     |
 
-```bash
-vget init
-```
-
-Ejecuta un asistente interactivo para crear el archivo de configuración.
-
-### Descargar medios
-
-```bash
-vget <url>
-```
-
-Descarga audio o video desde una URL compatible.
-
-**Opciones:**
-
-- `-o, --output <file>` - Nombre del archivo de salida
-- `-q, --quality <quality>` - Calidad preferida (ej: 1080p, 720p)
-- `--info` - Mostrar información del medio sin descargar
-
-**Ejemplos:**
+### Ejemplos
 
 ```bash
 vget https://twitter.com/user/status/123456789
 vget https://www.xiaoyuzhoufm.com/episode/abc123
 vget https://example.com/video -o mi_video.mp4
 vget --info https://example.com/video
-```
-
-### Buscar podcasts
-
-```bash
-vget search --podcast <query>
-```
-
-Busca podcasts de forma interactiva. Las búsquedas en chino usan Xiaoyuzhou, las demás usan iTunes.
-
-**Ejemplos:**
-
-```bash
 vget search --podcast "tech news"
-vget search --podcast "科技"
+vget pikpak:/path/to/file.mp4              # Descarga WebDAV
+vget ls pikpak:/Movies                     # Listar directorio remoto
 ```
-
-### Actualizar vget
-
-```bash
-vget update
-```
-
-Actualiza vget a la última versión.
 
 ## Fuentes compatibles
 

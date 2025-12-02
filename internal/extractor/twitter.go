@@ -529,10 +529,11 @@ type graphQLLegacy struct {
 
 func truncateText(s string, maxLen int) string {
 	s = strings.ReplaceAll(s, "\n", " ")
-	if len(s) <= maxLen {
+	runes := []rune(s)
+	if len(runes) <= maxLen {
 		return s
 	}
-	return s[:maxLen-3] + "..."
+	return string(runes[:maxLen-3]) + "..."
 }
 
 var resolutionRegex = regexp.MustCompile(`/(\d+)x(\d+)/`)

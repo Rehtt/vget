@@ -14,14 +14,13 @@ const (
 )
 
 // ConfigDir returns the standard config directory for vget.
-// macOS/Linux: ~/.config/vget/
-// Windows: %APPDATA%\vget\
+// All platforms: ~/.config/vget/
 func ConfigDir() (string, error) {
-	configDir, err := os.UserConfigDir()
+	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(configDir, AppDirName), nil
+	return filepath.Join(home, ".config", AppDirName), nil
 }
 
 // ConfigPath returns the path to the config file.

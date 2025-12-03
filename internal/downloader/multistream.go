@@ -15,17 +15,19 @@ import (
 
 // MultiStreamConfig configures multi-stream downloads
 type MultiStreamConfig struct {
-	Streams    int   // Number of parallel streams (default 8)
+	Streams    int   // Number of parallel streams (default 12)
 	ChunkSize  int64 // Size of each chunk in bytes (default 16MB)
-	BufferSize int   // Buffer size per stream (default 128KB)
+	BufferSize int   // Buffer size per stream (default 1MB)
+	UseHTTP2   bool  // Enable HTTP/2 (default true, better for HTTPS)
 }
 
 // DefaultMultiStreamConfig returns sensible defaults similar to rclone
 func DefaultMultiStreamConfig() MultiStreamConfig {
 	return MultiStreamConfig{
-		Streams:    12,                 // 12 parallel streams
-		ChunkSize:  64 * 1024 * 1024,   // 64MB chunks
-		BufferSize: 1024 * 1024,        // 1MB buffer per stream
+		Streams:    16,                // 16 parallel streams for better saturation
+		ChunkSize:  16 * 1024 * 1024,  // 16MB chunks - smaller to reduce tail latency
+		BufferSize: 1024 * 1024,       // 1MB buffer per stream
+		UseHTTP2:   true,              // Enable HTTP/2 by default for better multiplexing
 	}
 }
 
@@ -65,45 +67,108 @@ type chunk struct {
 	end   int64 // inclusive
 }
 
+// probeRangeSupport checks if the server supports Range requests using a small ranged GET
+// This is more reliable than HEAD because many CDNs only advertise Accept-Ranges on GET
+// Returns: totalSize, supportsRange, error
+func probeRangeSupport(ctx context.Context, client *http.Client, url, authHeader string) (int64, bool, error) {
+	// First try a ranged GET request for just 2 bytes
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return 0, false, err
+	}
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+	req.Header.Set("Range", "bytes=0-1")
+	if authHeader != "" {
+		req.Header.Set("Authorization", authHeader)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return 0, false, err
+	}
+	defer resp.Body.Close()
+
+	// Drain the small response body
+	io.Copy(io.Discard, resp.Body)
+
+	switch resp.StatusCode {
+	case http.StatusPartialContent:
+		// Server supports ranges - parse Content-Range for total size
+		// Format: bytes 0-1/total
+		contentRange := resp.Header.Get("Content-Range")
+		var start, end, total int64
+		if _, err := fmt.Sscanf(contentRange, "bytes %d-%d/%d", &start, &end, &total); err == nil {
+			return total, true, nil
+		}
+		// Couldn't parse Content-Range, fall back to HEAD
+		return probeWithHEAD(ctx, client, url, authHeader)
+
+	case http.StatusOK:
+		// Server returned 200 instead of 206 - doesn't support ranges
+		// But we can get the size from Content-Length
+		return resp.ContentLength, false, nil
+
+	case http.StatusRequestedRangeNotSatisfiable:
+		// 416 means server supports ranges but our range was invalid
+		// This shouldn't happen for bytes=0-1, but fall back to HEAD
+		return probeWithHEAD(ctx, client, url, authHeader)
+
+	default:
+		return 0, false, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+}
+
+// probeWithHEAD is a fallback that uses HEAD request to get file size
+func probeWithHEAD(ctx context.Context, client *http.Client, url, authHeader string) (int64, bool, error) {
+	req, err := http.NewRequestWithContext(ctx, "HEAD", url, nil)
+	if err != nil {
+		return 0, false, err
+	}
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+	if authHeader != "" {
+		req.Header.Set("Authorization", authHeader)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return 0, false, err
+	}
+	resp.Body.Close()
+
+	supportsRange := resp.Header.Get("Accept-Ranges") == "bytes"
+	return resp.ContentLength, supportsRange, nil
+}
+
 // MultiStreamDownload downloads a file using multiple parallel HTTP Range requests
 func MultiStreamDownload(ctx context.Context, url, output string, config MultiStreamConfig, state *downloadState) error {
 	// Create HTTP client with optimized transport for high-speed downloads
 	client := &http.Client{
 		Timeout: 0,
 		Transport: &http.Transport{
-			MaxIdleConns:        config.Streams * 2,
-			MaxIdleConnsPerHost: config.Streams * 2,
-			MaxConnsPerHost:     config.Streams * 2,
-			IdleConnTimeout:     90 * time.Second,
+			MaxIdleConns:        0,                 // Unlimited idle connections
+			MaxIdleConnsPerHost: config.Streams*2 + 10,
+			MaxConnsPerHost:     0,                 // Unlimited connections per host (like rclone)
+			IdleConnTimeout:     120 * time.Second,
 			DisableCompression:  true,              // Avoid CPU overhead for already compressed media
-			ForceAttemptHTTP2:   false,             // HTTP/1.1 is often faster for parallel downloads
-			WriteBufferSize:     64 * 1024,         // 64KB write buffer
-			ReadBufferSize:      64 * 1024,         // 64KB read buffer
+			ForceAttemptHTTP2:   config.UseHTTP2,   // Allow HTTP/2 for better multiplexing
+			WriteBufferSize:     128 * 1024,        // 128KB write buffer
+			ReadBufferSize:      128 * 1024,        // 128KB read buffer
 		},
 	}
 
-	// First, get the file size with a HEAD request
-	req, err := http.NewRequestWithContext(ctx, "HEAD", url, nil)
+	// Probe for range support and get file size using a small ranged GET
+	// Many CDNs only advertise Accept-Ranges on GET, not HEAD
+	totalSize, supportsRange, err := probeRangeSupport(ctx, client, url, "")
 	if err != nil {
-		return fmt.Errorf("failed to create HEAD request: %w", err)
+		return fmt.Errorf("failed to probe server: %w", err)
 	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 
-	resp, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("HEAD request failed: %w", err)
-	}
-	resp.Body.Close()
-
-	totalSize := resp.ContentLength
 	if totalSize <= 0 {
 		return fmt.Errorf("server did not return Content-Length")
 	}
 
-	// Check if server supports Range requests
-	acceptRanges := resp.Header.Get("Accept-Ranges")
-	if acceptRanges != "bytes" {
-		// Fall back to single-stream download
+	// Fall back to single-stream if range not supported
+	if !supportsRange {
 		return downloadWithProgress(client, url, output, state)
 	}
 
@@ -216,11 +281,51 @@ func calculateChunks(totalSize int64, streams int, chunkSize int64) []chunk {
 	return chunks
 }
 
-// downloadChunk downloads a single chunk using HTTP Range request
+// downloadChunk downloads a single chunk using HTTP Range request with retry logic
 func downloadChunk(ctx context.Context, client *http.Client, url string, file *os.File, c chunk, bufferSize int, state *multiStreamState) error {
+	const maxRetries = 5
+	var lastErr error
+	var previousAttemptBytes int64
+
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		if attempt > 0 {
+			// Subtract previously counted bytes since we're retrying the whole chunk
+			if previousAttemptBytes > 0 {
+				state.addBytes(-previousAttemptBytes)
+				previousAttemptBytes = 0
+			}
+
+			// Exponential backoff: 1s, 2s, 4s, 8s, 16s
+			backoff := time.Duration(1<<uint(attempt-1)) * time.Second
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(backoff):
+			}
+		}
+
+		bytesWritten, err := downloadChunkOnce(ctx, client, url, file, c, bufferSize, state)
+		if err == nil {
+			return nil
+		}
+		lastErr = err
+		previousAttemptBytes = bytesWritten
+
+		// Check if context was cancelled
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+	}
+
+	return fmt.Errorf("after %d retries: %w", maxRetries, lastErr)
+}
+
+// downloadChunkOnce performs a single attempt to download a chunk
+// Returns bytes written and any error
+func downloadChunkOnce(ctx context.Context, client *http.Client, url string, file *os.File, c chunk, bufferSize int, state *multiStreamState) (int64, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
@@ -228,16 +333,18 @@ func downloadChunk(ctx context.Context, client *http.Client, url string, file *o
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusPartialContent && resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		return 0, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
 	buf := make([]byte, bufferSize)
 	offset := c.start
+	expectedEnd := c.end + 1 // end is inclusive
+	var totalWritten int64
 
 	for {
 		n, readErr := resp.Body.Read(buf)
@@ -245,20 +352,25 @@ func downloadChunk(ctx context.Context, client *http.Client, url string, file *o
 			// Write at specific offset (thread-safe with pwrite)
 			written, writeErr := file.WriteAt(buf[:n], offset)
 			if writeErr != nil {
-				return fmt.Errorf("write failed: %w", writeErr)
+				return totalWritten, fmt.Errorf("write failed: %w", writeErr)
 			}
 			offset += int64(written)
+			totalWritten += int64(written)
 			state.addBytes(int64(written))
 		}
 		if readErr == io.EOF {
+			// Verify we got the full chunk
+			if offset < expectedEnd {
+				return totalWritten, fmt.Errorf("incomplete chunk: got %d bytes, expected %d", offset-c.start, expectedEnd-c.start)
+			}
 			break
 		}
 		if readErr != nil {
-			return fmt.Errorf("read failed: %w", readErr)
+			return totalWritten, fmt.Errorf("read failed: %w", readErr)
 		}
 	}
 
-	return nil
+	return totalWritten, nil
 }
 
 // RunMultiStreamDownloadTUI runs a multi-stream download with TUI progress
@@ -304,36 +416,23 @@ func MultiStreamDownloadWithAuth(ctx context.Context, url, authHeader, output st
 	client := &http.Client{
 		Timeout: 0,
 		Transport: &http.Transport{
-			MaxIdleConns:        config.Streams * 2,
-			MaxIdleConnsPerHost: config.Streams * 2,
-			MaxConnsPerHost:     config.Streams * 2,
-			IdleConnTimeout:     90 * time.Second,
+			MaxIdleConns:        0,                 // Unlimited idle connections
+			MaxIdleConnsPerHost: config.Streams*2 + 10,
+			MaxConnsPerHost:     0,                 // Unlimited connections per host (like rclone)
+			IdleConnTimeout:     120 * time.Second,
 			DisableCompression:  true,              // Avoid CPU overhead for already compressed media
-			ForceAttemptHTTP2:   false,             // HTTP/1.1 is often faster for parallel downloads
-			WriteBufferSize:     64 * 1024,         // 64KB write buffer
-			ReadBufferSize:      64 * 1024,         // 64KB read buffer
+			ForceAttemptHTTP2:   config.UseHTTP2,   // Allow HTTP/2 for better multiplexing
+			WriteBufferSize:     128 * 1024,        // 128KB write buffer
+			ReadBufferSize:      128 * 1024,        // 128KB read buffer
 		},
 	}
 
-	// First check if server supports Range requests
-	req, err := http.NewRequestWithContext(ctx, "HEAD", url, nil)
+	// Probe for range support using ranged GET (more reliable than HEAD)
+	_, supportsRange, err := probeRangeSupport(ctx, client, url, authHeader)
 	if err != nil {
-		return fmt.Errorf("failed to create HEAD request: %w", err)
+		// If probe fails, assume range is supported (we have totalSize from caller)
+		supportsRange = true
 	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-	if authHeader != "" {
-		req.Header.Set("Authorization", authHeader)
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("HEAD request failed: %w", err)
-	}
-	resp.Body.Close()
-
-	// Check if server supports Range requests
-	acceptRanges := resp.Header.Get("Accept-Ranges")
-	supportsRange := acceptRanges == "bytes"
 
 	state.update(0, totalSize)
 

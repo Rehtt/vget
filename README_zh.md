@@ -48,6 +48,7 @@ sudo mv vget /usr/local/bin/
 ```bash
 vget https://twitter.com/user/status/123456789
 vget https://www.xiaoyuzhoufm.com/episode/abc123
+vget https://www.xiaohongshu.com/explore/abc123  # 小红书视频/图片
 vget https://example.com/video -o my_video.mp4
 vget --info https://example.com/video
 vget search --podcast "科技"
@@ -62,6 +63,7 @@ vget ls pikpak:/Movies                     # 列出远程目录
 | Twitter/X      | 视频            | 已支持 |
 | 小宇宙 FM      | 音频（播客）    | 已支持 |
 | Apple Podcasts | 音频（播客）    | 已支持 |
+| 小红书         | 视频/图片       | 已支持 |
 
 ## 配置
 
